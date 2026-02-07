@@ -18,9 +18,6 @@ def _ensure_col(x):
 
 def _call_get_log_prob(policy_net, states, actions, next_states, index_agent, global_states, global_actions):
 
-
-
-
     f = policy_net.get_log_prob
     last_err = None
 
@@ -32,7 +29,6 @@ def _call_get_log_prob(policy_net, states, actions, next_states, index_agent, gl
         lambda: f(states, actions, global_states),
         lambda: f(states, actions),
     ]
-
     for call in tries:
         try:
             return call()

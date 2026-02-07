@@ -15,17 +15,6 @@ def suppress_output(enabled: bool = True):
     with open(os.devnull, "w") as f, redirect_stdout(f), redirect_stderr(f):
         yield
 class OvercookedParallelEnv:
-
-
-
-
-
-
-
-
-
-
-
     def __init__(
         self,
         layout_name="cramped_room",
@@ -80,13 +69,6 @@ class OvercookedParallelEnv:
         return arr.reshape(-1)
 
     def _format_obs(self, feat):
-
-
-
-
-
-
-
         try:
             arr = np.asarray(feat, dtype=np.float32)
             if arr.ndim == 2 and arr.shape[0] >= 2:
@@ -115,10 +97,6 @@ class OvercookedParallelEnv:
         return {"agent_0": flat.copy(), "agent_1": flat.copy()}
 
     def _featurize(self, state):
-
-
-
-
         if hasattr(self.mdp, "lossless_state_encoding"):
             return self.mdp.lossless_state_encoding(state)
 

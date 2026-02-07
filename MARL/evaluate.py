@@ -12,10 +12,8 @@ import pandas as pd
 from MADDPG import MADDPG
 from main import get_env
 
-
 def get_csv_dimensions(file_path):
     df = pd.read_csv(file_path,header=None)
-
     num_rows = df.shape[0]
     num_columns = df.shape[1]
 
@@ -37,9 +35,7 @@ if __name__ == '__main__':
     if not os.path.exists(gif_dir):
         os.makedirs(gif_dir)
     gif_num = len([file for file in os.listdir(gif_dir)])
-
     env, dim_info = get_env(args.env_name, args.episode_length, render_mode="rgb_array")
-
     maddpg = MADDPG.load(dim_info, os.path.join(model_dir, 'model.pt'))
 
     agent_num = env.num_agents
@@ -56,8 +52,6 @@ if __name__ == '__main__':
         states = env.reset()
         if isinstance(states, tuple):
             states = states[0]
-
-
         agent_reward = {agent: 0 for agent in env.agents}
         frame_list = []
         step_count = 0
@@ -69,13 +63,8 @@ if __name__ == '__main__':
         i=1
 
         while env.agents:
-
-
             actions = maddpg.select_action(states)
             next_states, rewards, dones, truncations, infos = env.step(actions)
-
-
-
             step_count += 1
             episode_data['states'].append(states)
             episode_data['actions'].append(actions)
@@ -86,9 +75,6 @@ if __name__ == '__main__':
 
             for agent_id, reward in rewards.items():
                 agent_reward[agent_id] += reward
-
-
-
         data['states'].extend(episode_data['states'])
         data['actions'].extend(episode_data['actions'])
         data['next_states'].extend(episode_data['next_states'])
@@ -160,9 +146,6 @@ if __name__ == '__main__':
         next_states_array.append(row)
     next_states_np_array = np.array(next_states_array)
     landmark_np_array = np.array(landmark)
-
-
-
     print("Shape of actions_np_array:", actions_np_array.shape)
     print("Shape of states_np_array:", states_np_array.shape)
     print("Shape of next_states_np_array:", next_states_np_array.shape)
@@ -176,10 +159,6 @@ if __name__ == '__main__':
     combined_array_ = np.concatenate((states_np_array, actions_np_array, next_states_np_array, landmark_np_array), axis=1)
     print("Shape of combined_array:", combined_array_.shape)
     combined_array = combined_array_[::-1]
-
-
-
-
     print('combined_array  = {}'.format(combined_array.shape))
     base_directory = "/path/of"
     directory = os.path.join(base_directory, args.folder)

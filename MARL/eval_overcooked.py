@@ -11,7 +11,11 @@ import pandas as pd
 
 from MADDPG import MADDPG
 from overcooked_wrapper import OvercookedParallelEnv
+import matplotlib
 
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 def ensure_dir(p: str):
     if p is None or p == "":
@@ -20,11 +24,6 @@ def ensure_dir(p: str):
 
 
 def load_policy(layout: str, folder: str, dim_info: Dict[str, List[int]]):
-
-
-
-
-
     model_dir = os.path.join("./results_overcooked", layout, str(folder))
     model_path = os.path.join(model_dir, "model.pt")
     if not os.path.exists(model_path):
@@ -39,20 +38,6 @@ def try_make_gif_overcooked(
     fps: int = 8,
     grid_shape: Tuple[int, int] = (5, 5),
 ):
-
-
-
-
-
-
-
-
-
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation, PillowWriter
-
     if len(frames) == 0:
         return False
 
@@ -111,10 +96,6 @@ def try_make_gif_overcooked(
 
 
 def export_traj_csv_overcooked(traj_rows: List[List], out_dir: str, filename: str = "traj_entities.csv"):
-
-
-
-
     cols = ["episode", "t", "entity", "id", "x", "y", "dir", "held", "event"]
     df = pd.DataFrame(traj_rows, columns=cols)
     out_path = os.path.join(out_dir, filename)
@@ -149,12 +130,6 @@ def export_mail_csv_head(episodes_obs, episodes_act, episodes_rew, episodes_done
 
 
 def _player_info_from_state(state):
-
-
-
-
-
-
 
     players = getattr(state, "players", None)
     if players is None or len(players) < 2:

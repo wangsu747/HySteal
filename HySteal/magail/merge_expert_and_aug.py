@@ -1,6 +1,4 @@
 
-
-
 import argparse
 import os
 import re
@@ -47,12 +45,6 @@ def coerce_int_col(df, col, default=0):
     return df
 
 def force_agent0_speed_copy(df: pd.DataFrame, agent_name: str = "agent_0"):
-
-
-
-
-
-
     need_cols = ["agent", "obs_0", "obs_1", "obs_14", "obs_15",
                  "next_obs_0", "next_obs_1", "next_obs_14", "next_obs_15"]
     for c in need_cols:

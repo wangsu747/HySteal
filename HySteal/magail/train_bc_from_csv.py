@@ -37,9 +37,6 @@ class AugmentConfig:
 
 
 def _parse_dims_spec(spec: str, max_dim: int) -> torch.Tensor:
-
-
-
     mask = torch.zeros(max_dim, dtype=torch.bool)
     if spec is None or len(spec.strip()) == 0:
         return mask
@@ -63,14 +60,6 @@ def augment_obs_batch(
     cfg: AugmentConfig,
     global_mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-
-
-
-
-
-
-
-
     if (not cfg.enable) or (cfg.p_aug <= 0.0):
         return obs
 
@@ -177,7 +166,6 @@ class MLPConfig:
     use_agent_id: bool
     agent_emb_dim: int
     n_agents: int
-
 
 class BCPolicy(nn.Module):
     def __init__(self, cfg: MLPConfig):

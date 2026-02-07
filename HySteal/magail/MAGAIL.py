@@ -1,6 +1,5 @@
 
 
-
 import math
 import multiprocessing
 import os
@@ -24,8 +23,6 @@ from models.transformer_discriminator import MILD2TransformerDiscriminator
 from utils.torch_util import device, to_device
 from pettingzoo.mpe import simple_tag_v3
 from magail.dynamics_env import DynamicsEnv
-
-
 def stat(x, name):
     x = x.detach()
     print(f"[STAT] {name}: mean={x.mean().item():+.4f} std={x.std().item():.4f} "
@@ -69,11 +66,6 @@ def _get(cfg: Dict[str, Any], path: str, default=None):
 
 
 def multi_trans_shape_func(batch_states: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-
-
-
-
-
     stacked = torch.stack(batch_states)
     trans = stacked.transpose(0, 1)
     n_agents = trans.shape[0]
@@ -83,10 +75,6 @@ def multi_trans_shape_func(batch_states: List[torch.Tensor]) -> Tuple[torch.Tens
 
 
 def to_onehot_from_ids(action_ids: torch.Tensor, action_n: int) -> torch.Tensor:
-
-
-
-
     if action_ids.dim() == 2 and action_ids.shape[1] == 1:
         action_ids = action_ids.squeeze(1)
     action_ids = action_ids.long()
@@ -99,13 +87,6 @@ def to_onehot_from_ids(action_ids: torch.Tensor, action_n: int) -> torch.Tensor:
 
 
 def _ensure_onehot_action(a: torch.Tensor, action_n: int) -> torch.Tensor:
-
-
-
-
-
-
-
     if a.dim() == 2 and a.shape[1] == action_n:
         return a.float()
     if a.dim() == 2 and a.shape[1] == 1:
@@ -130,10 +111,6 @@ def gae_from_rewards(
     lam: float,
     T: int,
 ):
-
-
-
-
     assert rewards.dim() == 2 and rewards.shape[1] == 1
     assert values.shape == rewards.shape
     assert masks.shape == rewards.shape
@@ -163,15 +140,6 @@ def gae_from_rewards(
 
 
 class HySteal:
-
-
-
-
-
-
-
-
-
     def __init__(self, config: Dict[str, Any], log_dir: str, exp_name: str, num_agent: int, bc_init: str = None):
         self.config = config
         self.exp_name = exp_name

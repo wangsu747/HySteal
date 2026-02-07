@@ -26,7 +26,6 @@ def to_vec(s: str, expected_dim: int):
     out[: arr.shape[0]] = arr
     return out
 
-
 def main():
     p = argparse.ArgumentParser("Predict joint next-state from trained dynamics model")
     p.add_argument("--ckpt_path", type=str, required=True)

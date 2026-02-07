@@ -10,7 +10,6 @@ import torch.nn.functional as F
 from Agent import Agent
 from Buffer import Buffer
 
-
 def setup_logger(filename):
 
     logger = logging.getLogger()
@@ -25,7 +24,6 @@ def setup_logger(filename):
     if not any(isinstance(h, logging.FileHandler) and getattr(h, "baseFilename", "") == handler.baseFilename
                for h in logger.handlers):
         logger.addHandler(handler)
-
     return logger
 
 
@@ -38,8 +36,6 @@ def _get_optim(agent: Agent, name_candidates):
 
 
 class MADDPG:
-
-
     def __init__(self, dim_info, capacity, batch_size, actor_lr, critic_lr, res_dir):
         global_obs_act_dim = sum(sum(val) for val in dim_info.values())
 
@@ -87,7 +83,6 @@ class MADDPG:
             triggered[agent_id] = trg
             step_in_episode[agent_id] = stp
             next_act[agent_id] = self.agents[agent_id].target_action(n_o).detach()
-
         return obs, act, reward, next_obs, done, next_act, triggered, step_in_episode
 
     def select_action(self, obs):
@@ -175,13 +170,6 @@ class MADDPG:
                         filename: str = "checkpoint.pt",
                         save_buffers: bool = False):
 
-
-
-
-
-
-
-
         ckpt: Dict[str, Any] = {
             "dim_info": self.dim_info,
             "global_step": int(self.global_step),
@@ -214,10 +202,6 @@ class MADDPG:
         return out_path
 
     def load_checkpoint_into_self(self, ckpt_path: str, load_buffers: bool = False):
-
-
-
-
         data = torch.load(ckpt_path, map_location="cpu")
         self.global_step = int(data.get("global_step", 0))
 

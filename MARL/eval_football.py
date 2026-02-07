@@ -38,11 +38,6 @@ def get_agent_xy_from_raw(
     n_left: int,
     n_right: int
 ) -> Tuple[float, float]:
-
-
-
-
-
     left_team = np.asarray(raw_obs0.get("left_team", []), dtype=np.float32)
     right_team = np.asarray(raw_obs0.get("right_team", []), dtype=np.float32)
 

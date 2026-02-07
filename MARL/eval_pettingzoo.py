@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 import argparse
 import json
 import os
@@ -24,12 +13,7 @@ from MADDPG import MADDPG
 
 DEFAULT_AGENT_ORDER = ['adversary_0', 'adversary_1', 'adversary_2', 'agent_0']
 
-
 def parse_reset(reset_out):
-
-
-
-
     if isinstance(reset_out, tuple) and len(reset_out) == 2:
         obs, infos = reset_out
         return obs, infos
@@ -37,7 +21,6 @@ def parse_reset(reset_out):
 
 
 def ensure_obs_dict(obs, agents) -> Dict[str, np.ndarray]:
-
     if isinstance(obs, dict):
         return obs
     if isinstance(obs, (list, tuple)):
@@ -106,10 +89,6 @@ def get_landmarks_xy(env) -> List[Tuple[float, float]]:
 
 
 def get_agent_xy(obs_vec: np.ndarray) -> Tuple[Optional[float], Optional[float]]:
-
-
-
-
     if obs_vec is None:
         return None, None
     if len(obs_vec) >= 4:
@@ -118,11 +97,6 @@ def get_agent_xy(obs_vec: np.ndarray) -> Tuple[Optional[float], Optional[float]]
 
 
 def normalize_action_to_id_and_json(a) -> Tuple[int, str]:
-
-
-
-
-
     if a is None:
         return 0, ""
 

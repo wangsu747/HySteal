@@ -6,13 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MILD2TransformerDiscriminator(nn.Module):
-
-
-
-
-
-
-
     def __init__(
         self,
         obs_dim: int,
@@ -75,11 +68,6 @@ class MILD2TransformerDiscriminator(nn.Module):
         )
 
     def forward(self, obs_tokens: torch.Tensor, act_tokens: torch.Tensor) -> torch.Tensor:
-
-
-
-
-
         assert obs_tokens.dim() == 3 and act_tokens.dim() == 3
         B, N, _ = obs_tokens.shape
         assert N == self.n_agents, f"expected N={self.n_agents}, got {N}"
@@ -100,20 +88,10 @@ class MILD2TransformerDiscriminator(nn.Module):
 
     @staticmethod
     def reward_from_logits(logits: torch.Tensor) -> torch.Tensor:
-
-
-
-
-
-
         return F.softplus(logits)
 
     @staticmethod
     def bce_loss(logits_exp: torch.Tensor, logits_gen: torch.Tensor, label_smooth: float = 0.0):
-
-
-
-
         loss_fn = nn.BCEWithLogitsLoss()
         exp_y = torch.ones_like(logits_exp)
         gen_y = torch.zeros_like(logits_gen)

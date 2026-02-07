@@ -8,12 +8,6 @@ from models.mlp_actor import Actor
 
 
 class JointPolicy(nn.Module):
-
-
-
-
-
-
     def __init__(self, initial_state, config=None):
         super(JointPolicy, self).__init__()
         self.config = config
@@ -54,13 +48,6 @@ class JointPolicy(nn.Module):
         self.initial_agent_state = initial_state
 
     def collect_samples(self, batch_size, num_agents, make_env_fn):
-
-
-
-
-
-
-
 
         memory = Memory()
         T = int(self.trajectory_length)

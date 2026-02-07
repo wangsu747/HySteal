@@ -21,20 +21,6 @@ class Actor(nn.Module):
                  num_hiddens: Tuple = (64, 64), activation: str = "relu",
                  drop_rate=None, num_states_2 =64):
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         super(Actor, self).__init__()
         self.num_states = num_states
         self.num_states_2 = num_states_2
@@ -119,11 +105,6 @@ class Actor(nn.Module):
 
 
     def forward(self, x, obs):
-
-
-
-
-
         for module1 in self._module_list1:
             x = module1(x)
             check_data(x, "x after module1")
@@ -153,13 +134,6 @@ class Actor(nn.Module):
 
     def get_action_log_prob(self, states,obs):
 
-
-
-
-
-
-
-
         dist_discrete, dist_continuous = self.forward(states,obs)
         eps = 1e-6
         action = dist_continuous.sample()
@@ -173,12 +147,6 @@ class Actor(nn.Module):
             discrete_log_prob = dist_discrete.log_prob(discrete_action)
             action = torch.cat([discrete_action, action], dim=-1)
 
-            """
-            How to deal with log prob?
-            
-            1. Add discrete log_prob and continuous log_prob, consider their dependency;
-            2. Concat them together
-            """
             log_prob = (log_prob + discrete_log_prob)
 
         log_prob.unsqueeze_(-1)
@@ -186,13 +154,6 @@ class Actor(nn.Module):
 
 
     def agent_get_action_log_prob(self, states,obs):
-
-
-
-
-
-
-
 
         dist_discrete, dist_continuous = self.forward(states,obs)
         action = dist_continuous.sample()
@@ -213,25 +174,12 @@ class Actor(nn.Module):
             discrete_log_prob = dist_discrete.log_prob(discrete_action)
             action = torch.cat([discrete_action, action], dim=-1)
 
-            """
-            How to deal with log prob?
-
-            1. Add discrete log_prob and continuous log_prob, consider their dependency;
-            2. Concat them together
-            """
             log_prob = (log_prob + discrete_log_prob)
 
         log_prob.unsqueeze_(-1)
         return action, log_prob
 
     def get_log_prob(self, states, actions,obs):
-
-
-
-
-
-
-
         dist_discrete, dist_continuous = self.forward(states,obs)
         if self.use_multivariate_distribution:
             log_prob = dist_continuous.log_prob(actions[..., self.num_discrete_actions:])
@@ -243,11 +191,6 @@ class Actor(nn.Module):
         return log_prob.unsqueeze(-1)
 
     def get_entropy(self, states,obs):
-
-
-
-
-
         dist_discrete, dist_continuous = self.forward(states,obs)
         ent_discrete = dist_discrete.entropy()
         ent_continuous = dist_continuous.entropy()
@@ -256,9 +199,4 @@ class Actor(nn.Module):
         return ent
 
     def get_kl(self, states):
-
-
-
-
-
         pass

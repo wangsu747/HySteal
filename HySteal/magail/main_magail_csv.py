@@ -217,10 +217,6 @@ def main(train_mode, config_train, config_eval, num_agent, trial,
         print(f"[BC] epochs: {bc_pretrain_epochs}, batch_size: {bc_batch_size}, lr: {bc_lr}")
         print(f"[BC] ckpt save to: {bc_ckpt_path}")
         print("=" * 80)
-
-
-
-
         agent_order = config["general"]["agent_order"]
 
         saved_ckpt = bc_pretrain(

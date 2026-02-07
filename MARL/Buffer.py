@@ -3,8 +3,6 @@ import torch
 
 
 class Buffer:
-
-
     def __init__(self, capacity, obs_dim, act_dim, device):
         self.capacity = capacity
         self.obs = np.zeros((capacity, obs_dim))
@@ -21,8 +19,6 @@ class Buffer:
         self.device = device
 
     def add(self, obs, action, reward, next_obs, done, triggered=False, step_in_episode=0):
-
-
         self.obs[self._index] = obs
         self.action[self._index] = action
         self.reward[self._index] = reward

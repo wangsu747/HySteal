@@ -5,14 +5,6 @@ from torch.utils.data import Dataset
 from utils.il_csv_adapter import normalize_il_dataframe
 
 class ExpertCSVDataset(Dataset):
-
-
-
-
-
-
-
-
     def __init__(self,
                  csv_path: str,
                  agent_order: list,

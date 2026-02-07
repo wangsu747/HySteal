@@ -13,13 +13,10 @@ def timer(message=None, show_result=False):
             print(
                 f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time_start))}, Start {func.__name__}()".center(80,
                                                                                                                     "*"))
-
             res = func(*args, **kwargs)
-
             if show_result:
                 print("Result: ")
                 print(res)
-
             if message:
                 print(message)
             print(f"After {(time.time() - time_start)} s".center(80, " "))
@@ -28,7 +25,5 @@ def timer(message=None, show_result=False):
                 f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}, End {func.__name__}()".center(80,
                                                                                                                    "*"))
             return res
-
         return wrapper
-
     return decorate

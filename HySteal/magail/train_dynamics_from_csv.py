@@ -19,20 +19,15 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from utils.il_csv_adapter import normalize_il_dataframe, infer_obs_cols
-
-
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
-
 def get_device(name: str) -> torch.device:
     if name == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.device(name)
-
 
 def infer_agent_order(df: pd.DataFrame, agent_order_arg: str) -> List[str]:
     if isinstance(agent_order_arg, str) and agent_order_arg.strip():
@@ -107,7 +102,6 @@ def build_joint_transitions(
         np.stack(ys).astype(np.float32),
         np.asarray(eps, dtype=np.int64),
     )
-
 
 def build_init_states(df: pd.DataFrame, agent_order: List[str], obs_dim: int, require_full: bool = True):
     agent_to_idx = {a: i for i, a in enumerate(agent_order)}

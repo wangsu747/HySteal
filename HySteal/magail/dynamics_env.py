@@ -1,6 +1,4 @@
 
-
-
 import os
 import sys
 import random
@@ -14,16 +12,12 @@ import torch.nn as nn
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-
 @dataclass
 class DynCfg:
     in_dim: int
     out_dim: int
     hidden_dim: int
     n_layers: int
-
-
 class ResidualDynamicsMLP(nn.Module):
     def __init__(self, cfg: DynCfg):
         super().__init__()
@@ -39,13 +33,10 @@ class ResidualDynamicsMLP(nn.Module):
         x = torch.cat([s, a], dim=-1)
         delta = self.net(x)
         return s + delta, delta
-
-
 def get_device(name: str) -> torch.device:
     if name == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.device(name)
-
 
 def _to_onehot(action_ids: np.ndarray, action_n: int) -> np.ndarray:
     action_ids = action_ids.astype(np.int64).reshape(-1)

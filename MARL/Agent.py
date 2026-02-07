@@ -8,8 +8,6 @@ from torch.optim import Adam
 
 
 class Agent:
-
-
     def __init__(self, obs_dim, act_dim, global_obs_dim, actor_lr, critic_lr):
         self.actor = MLPNetwork(obs_dim, act_dim)
 

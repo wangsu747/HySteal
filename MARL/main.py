@@ -7,25 +7,15 @@ import pettingzoo
 from pettingzoo.mpe import simple_adversary_v3, simple_spread_v3, simple_tag_v3
 
 from MADDPG import MADDPG
-
-
-
 def _get_mpe_world(env):
-
-
-
-
     if hasattr(env, "unwrapped") and hasattr(env.unwrapped, "world"):
         return env.unwrapped.world
-
     if hasattr(env, "aec_env"):
         aec = env.aec_env
         if hasattr(aec, "unwrapped") and hasattr(aec.unwrapped, "world"):
             return aec.unwrapped.world
-
     if hasattr(env, "world"):
         return env.world
-
     return None
 
 
@@ -36,12 +26,6 @@ def _is_collision(a, b):
 
 
 def add_tag_individual_bonus(env, reward_dict, individual_bonus=10.0, prey_prefix="agent_"):
-
-
-
-
-
-
     world = _get_mpe_world(env)
     if world is None:
         return reward_dict
@@ -77,9 +61,6 @@ def get_env(env_name, ep_len=25,render_mode=None):
         new_env = simple_spread_v3.parallel_env(**env_kwargs)
     if env_name == 'simple_tag_v3':
         new_env = simple_tag_v3.parallel_env(**env_kwargs)
-
-
-
     new_env.reset()
     _dim_info = {}
     for agent_id in new_env.agents:
@@ -182,7 +163,6 @@ if __name__ == '__main__':
 
 
     def get_running_reward(arr: np.ndarray, window=100):
-
         running_reward = np.zeros_like(arr)
         for i in range(window - 1):
             running_reward[i] = np.mean(arr[:i + 1])

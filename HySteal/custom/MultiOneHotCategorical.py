@@ -9,27 +9,11 @@ from torch.distributions import OneHotCategorical
 
 class MultiOneHotCategorical(OneHotCategorical):
 
-
-
-
-
-
-
-
-
-
-
-
     def __init__(self, probs: torch.Tensor, sections: Tuple):
         self._sections = sections
         self._dists = [OneHotCategorical(x) for x in torch.split(probs, sections, dim=-1)]
 
     def sample(self, sample_shape=torch.Size()):
-
-
-
-
-
         res = torch.cat([dist.sample() for dist in self._dists], dim=-1)
         return res
 

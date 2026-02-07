@@ -34,12 +34,6 @@ class Value(nn.Module):
                 self._module_list.add_module(f"Layer_{idx + 1}_Dropout", nn.Dropout(self.drop_rate))
 
     def forward(self, *args):
-
-
-
-
-
-
         x = torch.cat(args, -1)
 
         for module in self._module_list:

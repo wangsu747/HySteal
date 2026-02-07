@@ -5,15 +5,6 @@ import gfootball.env as fe
 
 class GRFParallelEnv:
 
-
-
-
-
-
-
-
-
-
     BALL_X = 0
     BALL_Y = 1
 
@@ -202,11 +193,6 @@ class GRFParallelEnv:
         }
 
     def _goal_from_info_or_reward(self, info0, base_r):
-
-
-
-
-
 
         if (self.cur_step - self._last_goal_step) < self.goal_cooldown_steps:
             return False, False
