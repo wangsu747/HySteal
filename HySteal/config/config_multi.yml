@@ -1,0 +1,76 @@
+general:
+  expert_csv_path: /path/of
+  obs_dim_per_agent: 16
+  action_n: 5
+  num_agent: 4
+  trajectory_length: 25
+  expert_batch_size: 500
+
+  training_epochs: 5     seed: 0                 
+  agent_order:
+    - adversary_0
+    - adversary_1
+    - adversary_2
+    - agent_0
+
+
+gae:
+  gamma: 0.995
+  tau: 0.96
+
+ppo:
+  clip_ratio: 0.1
+  ppo_optim_epochs: 3
+  ppo_mini_batch_size: 300
+  sample_batch_size: 300
+
+jointpolicy:
+  learning_rate: 1e-4
+  trajectory_length: 25
+  epsilon_greedy: 0.00
+  agent:
+    num_states: 16                  num_states_2: 64                num_actions: 5                  num_discrete_actions: 5
+    discrete_actions_sections: !!python/tuple [5]
+    action_log_std: 0.0
+    use_multivariate_distribution: False
+    num_hiddens: !!python/tuple [256]
+    activation: LeakyReLU
+    drop_rate: 0.5
+    num_agent: 4
+
+  env:
+    num_states: 21                  num_states_2: 84                num_actions: 16                 num_discrete_actions: 0         discrete_actions_sections: !!python/tuple [0]
+    action_log_std: 0.0             use_multivariate_distribution: False
+    num_hiddens: !!python/tuple [256]
+    activation: LeakyReLU
+    drop_rate: 0.5
+    num_agent: 4
+
+
+value:
+  num_states: 16            num_hiddens: !!python/tuple [32, 64, 32]
+  activation: LeakyReLU
+  drop_rate: 0.2
+  learning_rate: 2e-4
+  l2_reg: 1e-4
+
+discriminator:
+  d_steps: 1
+  update_interval: 1     num_states: 16            num_actions: 5            num_hiddens: !!python/tuple [32, 64, 32]
+  num_agent: 4
+  activation: LeakyReLU
+  drop_rate: 0.2
+  learning_rate: 1e-5
+  use_noise: True
+  noise_std: 0.05
+  use_label_smoothing: True
+  label_smooth_rate: 0.05
+
+transformer_discriminator:
+  d_model: 128
+  nhead: 4
+  enc_layers: 2
+  dec_layers: 2
+  dim_feedforward: 256
+  dropout: 0.1
+  use_agent_id_embedding: true
