@@ -8,21 +8,21 @@ HySteal is a hybrid imitation learning system that frames multi-agent model stea
 
 
 HySteal 
-- Train: runs the full pipeline (BC, dynamics, rollout, merge, HySteal training).
+- Train: runs the full pipeline HySteal training and evaluation.
 ```
 bash HySteal/run_all_single_scale.sh
 ```
-- Evaluate: evaluates a model checkpoint on the selected environment.
+- Evaluate: evaluates a HySteal model on the selected environment.
 ```
 HySteal/evaluate.sh ENV_TYPE /path/of/model.pt
 ```
 
 MARL
-- Train: trains MADDPG for the selected environment.
+- Train: trains multi-agent reinforcement learning for the selected environment.
 ```
 ENV_TYP bash MARL/train_maddpg.sh
 ```
-- Evaluate: evaluates MADDPG for the selected environment.
+- Evaluate: evaluates multi-agent reinforcement learning policy for the selected environment.
 ```
 ENV_TYPE bash MARL/eval_maddpg.sh
 ```
