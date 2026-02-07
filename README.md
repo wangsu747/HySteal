@@ -5,7 +5,9 @@ This is the source code for our paper.
 Hysteal is a Learning-based Coordinated Cyber-Physical Systems
 HySteal is a hybrid imitation learning system that frames multi-agent model stealing combining behavioral cloning and adversarial imitation to recover high-fidelity MADRL policies in complex CPS settings.
 
+## Pipeline
 
+![Pipeline](picture/pipeline.png)
 
 ## HySteal
  
@@ -28,3 +30,4 @@ ENV_TYP bash MARL/train_maddpg.sh
 ```
 ENV_TYPE bash MARL/eval_maddpg.sh
 ```
+
