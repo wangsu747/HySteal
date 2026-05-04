@@ -12,7 +12,7 @@ Multi-agent Deep Reinforcement Learning (MADRL) models are foundational to moder
 ## ThreatModel
 ![Pipeline](picture/threatmodel.png)
 
-## HySteal
+## SWARM
  
 - Train: runs the full pipeline SWARM training and evaluation.
 ```
