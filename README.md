@@ -14,13 +14,13 @@ Multi-agent Deep Reinforcement Learning (MADRL) models are foundational to moder
 
 ## HySteal
  
-- Train: runs the full pipeline HySteal training and evaluation.
+- Train: runs the full pipeline SWARM training and evaluation.
 ```
-bash HySteal/run_all_single_scale.sh
+bash SWARM/run_all_single_scale.sh
 ```
-- Evaluate: evaluates a HySteal model on the selected environment.
+- Evaluate: evaluates a SWARM model on the selected environment.
 ```
-HySteal/evaluate.sh ENV_TYPE /path/of/model.pt
+SWARM/evaluate.sh ENV_TYPE /path/of/model.pt
 ```
 
 ## MARL
