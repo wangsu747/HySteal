@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import argparse
 import os
@@ -10,8 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pettingzoo.mpe import simple_tag_v3
-from magail.dynamics_env import DynamicsEnv
+from pettingzoo.mpe import simple_spread_v3, simple_tag_v3
 
 
 def set_seed(seed: int):
@@ -19,6 +20,7 @@ def set_seed(seed: int):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
 
 def get_device(device: str) -> torch.device:
     if device == "auto":
@@ -106,24 +108,13 @@ def load_bc(ckpt_path: str, device: torch.device) -> Tuple[BCPolicy, Dict[str, A
     return model, meta
 
 
-def ensure_env(
-    env_name: str,
-    ep_len: int,
-    render_mode: Optional[str],
-    agent_order: Optional[List[str]] = None,
-    use_dynamics_env: bool = False,
-    dynamics_ckpt: str = "",
-    device: str = "auto",
-):
-    if use_dynamics_env or (isinstance(dynamics_ckpt, str) and dynamics_ckpt.strip()):
-        if not dynamics_ckpt:
-            raise ValueError("--dynamics_ckpt is required when using dynamics env")
-        return DynamicsEnv(dynamics_ckpt, episode_length=ep_len, device=device)
+def ensure_env(env_name: str, ep_len: int, render_mode: Optional[str], agent_order: Optional[List[str]] = None):
     if env_name == "simple_tag_v3":
         kwargs = dict(max_cycles=ep_len, render_mode=render_mode)
         if agent_order:
             n_adv = sum(1 for a in agent_order if str(a).startswith("adversary_"))
             n_good = sum(1 for a in agent_order if str(a).startswith("agent_"))
+            # Keep old default behavior when parsing fails.
             if n_adv > 0 and n_good > 0:
                 kwargs["num_adversaries"] = int(n_adv)
                 kwargs["num_good"] = int(n_good)
@@ -132,6 +123,16 @@ def ensure_env(
         except TypeError:
             kwargs.pop("render_mode", None)
             env = simple_tag_v3.parallel_env(**kwargs)
+        return env
+    if env_name == "simple_spread_v3":
+        kwargs = dict(max_cycles=ep_len, render_mode=render_mode)
+        if agent_order:
+            kwargs["N"] = int(len(agent_order))
+        try:
+            env = simple_spread_v3.parallel_env(**kwargs)
+        except TypeError:
+            kwargs.pop("render_mode", None)
+            env = simple_spread_v3.parallel_env(**kwargs)
         return env
     raise ValueError(f"Unsupported env_name: {env_name}")
 
@@ -147,10 +148,12 @@ def reset_env(env):
 
 def step_env(env, actions: Dict[str, int]):
     out = env.step(actions)
+    # Newer parallel API: (obs, rewards, terminations, truncations, infos)
     if isinstance(out, tuple) and len(out) == 5:
         obs, rewards, terms, truncs, infos = out
         dones = {a: bool(terms.get(a, False) or truncs.get(a, False)) for a in rewards.keys()}
         return obs, rewards, dones, infos
+    # Older: (obs, rewards, dones, infos)
     if isinstance(out, tuple) and len(out) == 4:
         obs, rewards, dones, infos = out
         dones = {a: bool(dones.get(a, False)) for a in rewards.keys()}
@@ -225,8 +228,6 @@ def main():
     p.add_argument("--keep_steps", type=int, default=25, help="must reach this many steps to accept an episode")
     p.add_argument("--ep_len", type=int, default=25, help="passed to env max_cycles")
     p.add_argument("--render_mode", type=str, default=None)
-    p.add_argument("--use_dynamics_env", action="store_true")
-    p.add_argument("--dynamics_ckpt", type=str, default="")
 
     p.add_argument("--student_ckpt", type=str, required=True)
     p.add_argument("--expert_ckpts", type=str, required=True, help="comma-separated list of ckpt paths")
@@ -258,23 +259,17 @@ def main():
         experts.append(m)
         e_metas.append(meta)
 
+    # Compatibility checks
     obs_dim = s_meta["obs_dim"]
     action_dim = s_meta["action_dim"]
     for meta in e_metas:
         if meta["obs_dim"] != obs_dim or meta["action_dim"] != action_dim:
             raise ValueError("Expert ckpt obs_dim/action_dim mismatch with student ckpt.")
 
+    # Use student agent_order as canonical ordering
     agent_order: List[str] = list(s_meta["agent_order"])
     agent_to_id = {a: i for i, a in enumerate(agent_order)}
-    env = ensure_env(
-        args.env_name,
-        ep_len=args.ep_len,
-        render_mode=args.render_mode,
-        agent_order=agent_order,
-        use_dynamics_env=args.use_dynamics_env,
-        dynamics_ckpt=args.dynamics_ckpt,
-        device=args.device,
-    )
+    env = ensure_env(args.env_name, ep_len=args.ep_len, render_mode=args.render_mode, agent_order=agent_order)
 
     rows: List[Dict[str, Any]] = []
     kept_episodes = 0
@@ -288,12 +283,14 @@ def main():
         attempt_episodes += 1
         obs_dict, _ = reset_env(env)
 
+        # 固定 episode 的 agent 集合（用 student agent_order 更稳定）
         episode_agents = list(agent_order)
 
         rows_ep: List[Dict[str, Any]] = []
         episode_ok = True
 
         for t in range(args.keep_steps):
+            # 必须能拿到所有 agent 的 obs，否则作废
             if obs_dict is None or not isinstance(obs_dict, dict):
                 episode_ok = False
                 break
@@ -304,6 +301,7 @@ def main():
             actions: Dict[str, int] = {}
             per_agent_cache: Dict[str, Dict[str, Any]] = {}
 
+            # 先算动作并 gate
             for agent in episode_agents:
                 obs_vec = obs_to_vec(obs_dict[agent], obs_dim)
                 agent_id = agent_to_id.get(agent, 0)
@@ -336,20 +334,23 @@ def main():
                     "keep": bool(keep),
                 }
 
+            # ✅ 一票否决：任何 agent reject -> 整条 episode 作废
             if any(not x["keep"] for x in per_agent_cache.values()):
                 total_discard_reject += 1
                 episode_ok = False
                 break
 
+            # Step env
             next_obs, rewards, dones, infos = step_env(env, actions)
 
+            # 记录这一 timestep（此时所有 agent 都 keep=True）
             for agent in episode_agents:
                 nobs_vec = obs_to_vec(next_obs.get(agent, None) if isinstance(next_obs, dict) else None, obs_dim)
                 r = float(rewards.get(agent, 0.0)) if isinstance(rewards, dict) else 0.0
                 d = bool(dones.get(agent, False)) if isinstance(dones, dict) else False
 
                 row = {
-                    "episode": int(kept_episodes),
+                    "episode": int(kept_episodes),  # 合格 episode 编号
                     "t": int(t),
                     "agent": agent,
                     "action_id": int(per_agent_cache[agent]["action_id"]),
@@ -367,12 +368,14 @@ def main():
 
             obs_dict = next_obs
 
+            # 如果 env 提前全 done，且没跑满 keep_steps，则作废（保证长度恒定）
             if isinstance(dones, dict) and len(dones) > 0 and all(bool(x) for x in dones.values()):
                 if t != args.keep_steps - 1:
                     total_discard_short += 1
                     episode_ok = False
                 break
 
+        # episode 结束：只有完整跑满 keep_steps 才收
         if episode_ok:
             expected_rows = args.keep_steps * len(agent_order)
             if len(rows_ep) == expected_rows:
@@ -380,10 +383,12 @@ def main():
                 total_kept_rows += len(rows_ep)
                 kept_episodes += 1
                 if kept_episodes % 10 == 0 or kept_episodes == 1:
-                    print(f"[kept {kept_episodes}/{args.episodes}] attempts={attempt_episodes} ")
+                    print(f"[kept {kept_episodes}/{args.episodes}] attempts={attempt_episodes} ✅")
             else:
                 total_discard_short += 1
+                # 不收
         else:
+            # episode discarded
             pass
 
     if kept_episodes < args.episodes:

@@ -1,19 +1,17 @@
 general:
-  expert_csv_path: /path/of
+  expert_csv_path: data/expert.csv
   obs_dim_per_agent: 16
   action_n: 5
   num_agent: 4
-  trajectory_length: 25
+  trajectory_length: 20
   expert_batch_size: 500
-
-  training_epochs: 5
+  training_epochs: 100
   seed: 0
   agent_order:
-    - adversary_0
-    - adversary_1
-    - adversary_2
     - agent_0
-
+    - agent_1
+    - agent_2
+    - agent_3
 
 gae:
   gamma: 0.995
@@ -28,7 +26,7 @@ ppo:
 jointpolicy:
   learning_rate: 1e-4
   trajectory_length: 25
-  epsilon_greedy: 0.00
+  epsilon_greedy: 0.0
   agent:
     num_states: 16
     num_states_2: 64
@@ -36,12 +34,11 @@ jointpolicy:
     num_discrete_actions: 5
     discrete_actions_sections: !!python/tuple [5]
     action_log_std: 0.0
-    use_multivariate_distribution: False
+    use_multivariate_distribution: false
     num_hiddens: !!python/tuple [256]
     activation: LeakyReLU
     drop_rate: 0.5
     num_agent: 4
-
   env:
     num_states: 21
     num_states_2: 84
@@ -49,12 +46,11 @@ jointpolicy:
     num_discrete_actions: 0
     discrete_actions_sections: !!python/tuple [0]
     action_log_std: 0.0
-    use_multivariate_distribution: False
+    use_multivariate_distribution: false
     num_hiddens: !!python/tuple [256]
     activation: LeakyReLU
     drop_rate: 0.5
     num_agent: 4
-
 
 value:
   num_states: 16
@@ -74,9 +70,9 @@ discriminator:
   activation: LeakyReLU
   drop_rate: 0.2
   learning_rate: 1e-5
-  use_noise: True
+  use_noise: true
   noise_std: 0.05
-  use_label_smoothing: True
+  use_label_smoothing: true
   label_smooth_rate: 0.05
 
 transformer_discriminator:
@@ -87,3 +83,4 @@ transformer_discriminator:
   dim_feedforward: 256
   dropout: 0.1
   use_agent_id_embedding: true
+

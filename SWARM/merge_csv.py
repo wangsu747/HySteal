@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -10,7 +11,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from utils.il_csv_adapter import normalize_il_dataframe
+from SWARM.utils.il_csv_adapter import normalize_il_dataframe
 
 OBS_RE = re.compile(r"^obs_(\d+)$")
 NOBS_RE = re.compile(r"^next_obs_(\d+)$")
@@ -44,7 +45,28 @@ def coerce_int_col(df, col, default=0):
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(default).astype(int)
     return df
 
+def offset_episode_ids(df_base: pd.DataFrame, df_to_shift: pd.DataFrame):
+    """
+    Make episode ids globally unique after merge.
+    """
+    df_base = coerce_int_col(df_base, "episode", default=0)
+    df_to_shift = coerce_int_col(df_to_shift, "episode", default=0)
+
+    if len(df_base) == 0:
+        base_offset = 0
+    else:
+        base_offset = int(df_base["episode"].max()) + 1
+
+    df_to_shift = df_to_shift.copy()
+    df_to_shift["episode"] = df_to_shift["episode"] + base_offset
+    return df_base, df_to_shift, base_offset
+
 def force_agent0_speed_copy(df: pd.DataFrame, agent_name: str = "agent_0"):
+    """
+   union agent_0：obs_14/obs_15 = obs_0/obs_1
+                next_obs_14/next_obs_15 = next_obs_0/next_obs_1
+
+    """
     need_cols = ["agent", "obs_0", "obs_1", "obs_14", "obs_15",
                  "next_obs_0", "next_obs_1", "next_obs_14", "next_obs_15"]
     for c in need_cols:
@@ -53,8 +75,10 @@ def force_agent0_speed_copy(df: pd.DataFrame, agent_name: str = "agent_0"):
 
     m = (df["agent"] == agent_name)
     if m.any():
+        # obs
         df.loc[m, "obs_14"] = df.loc[m, "obs_0"]
         df.loc[m, "obs_15"] = df.loc[m, "obs_1"]
+        # next_obs
         df.loc[m, "next_obs_14"] = df.loc[m, "next_obs_0"]
         df.loc[m, "next_obs_15"] = df.loc[m, "next_obs_1"]
     return df
@@ -84,6 +108,8 @@ def main():
     df_e = df_e[df_e["t"] < args.max_t].copy()
     df_a = df_a[df_a["t"] < args.max_t].copy()
 
+    df_e, df_a, ep_offset = offset_episode_ids(df_e, df_a)
+
     e_obs = set(get_obs_cols(df_e))
     a_obs = set(get_obs_cols(df_a))
     e_nobs = set(get_next_obs_cols(df_e))
@@ -98,6 +124,7 @@ def main():
         "vote_ratio", "avg_logp"
     ]
 
+    # add source + weight
     df_e["source"] = "expert"
     df_a["source"] = "aug"
     df_e["weight"] = float(args.expert_weight)
@@ -116,6 +143,7 @@ def main():
     df_e = df_e[all_cols]
     df_a = df_a[all_cols]
 
+    # fill NaNs in obs/next_obs first (so copies won't become NaN)
     fill_cols = obs_cols + next_obs_cols
     nan_e = int(df_e[fill_cols].isna().sum().sum())
     nan_a = int(df_a[fill_cols].isna().sum().sum())
@@ -132,6 +160,13 @@ def main():
     df_out.to_csv(args.out_csv, index=False)
     print(f"Saved merged CSV: {args.out_csv}")
     print(f"rows: expert={len(df_e)} aug={len(df_a)} merged={len(df_out)}")
+    print(
+        "episodes:",
+        f"expert={df_e['episode'].nunique()}",
+        f"aug={df_a['episode'].nunique()}",
+        f"merged={df_out['episode'].nunique()}",
+        f"aug_offset={ep_offset}",
+    )
     print(f"kept timesteps: t in [0, {args.max_t-1}]")
     print("columns:", len(df_out.columns))
 

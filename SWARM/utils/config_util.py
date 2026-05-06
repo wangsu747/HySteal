@@ -1,7 +1,7 @@
-
+#!/usr/bin/env python
 import yaml
 
-from utils.time_util import timer
+from SWARM.utils.time_util import timer
 
 __all__ = ['config_loader']
 

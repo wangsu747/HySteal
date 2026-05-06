@@ -1,12 +1,11 @@
-
-
+#!/usr/bin/env python3
 
 import argparse
 import os
 import random
 import sys
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -18,16 +17,21 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from utils.il_csv_adapter import normalize_il_dataframe, infer_obs_cols
+from SWARM.utils.il_csv_adapter import normalize_il_dataframe, infer_obs_cols
+
+
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+
 def get_device(name: str) -> torch.device:
     if name == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.device(name)
+
 
 def infer_agent_order(df: pd.DataFrame, agent_order_arg: str) -> List[str]:
     if isinstance(agent_order_arg, str) and agent_order_arg.strip():
@@ -41,16 +45,6 @@ def infer_agent_order(df: pd.DataFrame, agent_order_arg: str) -> List[str]:
             s.add(a)
             seen.append(str(a))
     return seen
-
-
-def _filter_complete_group(g, agent_order, require_full: bool):
-    if require_full and len(g) != len(agent_order):
-        return None
-    if g["agent"].nunique() != len(g):
-        return None
-    if require_full and list(g["agent"].values) != agent_order:
-        return None
-    return g
 
 
 def build_joint_transitions(
@@ -76,14 +70,17 @@ def build_joint_transitions(
 
     xs, us, ys, eps = [], [], [], []
     for (ep, _t), g in d.groupby(["episode", "t"], sort=True):
+        if require_full and len(g) != n_agents:
+            continue
+        if g["agent"].nunique() != len(g):
+            continue
         g = g.sort_values(by="agent", key=lambda s: s.map(agent_to_idx))
-        g = _filter_complete_group(g, agent_order, require_full)
-        if g is None:
+        if require_full and list(g["agent"].values) != agent_order:
             continue
 
-        obs = g[[f"obs_{i}" for i in range(obs_dim)]].to_numpy(dtype=np.float32)
-        nxt = g[[f"next_obs_{i}" for i in range(obs_dim)]].to_numpy(dtype=np.float32)
-        act = g["action_id"].to_numpy(dtype=np.int64)
+        obs = g[[f"obs_{i}" for i in range(obs_dim)]].to_numpy(dtype=np.float32)      # [N,D]
+        nxt = g[[f"next_obs_{i}" for i in range(obs_dim)]].to_numpy(dtype=np.float32)  # [N,D]
+        act = g["action_id"].to_numpy(dtype=np.int64)                                   # [N]
 
         act_oh = np.zeros((n_agents, action_n), dtype=np.float32)
         valid = (act >= 0) & (act < action_n)
@@ -102,28 +99,6 @@ def build_joint_transitions(
         np.stack(ys).astype(np.float32),
         np.asarray(eps, dtype=np.int64),
     )
-
-def build_init_states(df: pd.DataFrame, agent_order: List[str], obs_dim: int, require_full: bool = True):
-    agent_to_idx = {a: i for i, a in enumerate(agent_order)}
-    keep_cols = ["episode", "t", "agent"] + [f"obs_{i}" for i in range(obs_dim)]
-    for c in keep_cols:
-        if c not in df.columns:
-            raise ValueError(f"Missing required column after normalization: {c}")
-    d = df[keep_cols].copy()
-    d = d[d["agent"].isin(agent_order)].copy()
-
-    inits = []
-    for (ep, t), g in d.groupby(["episode", "t"], sort=True):
-        if int(t) != 0:
-            continue
-        g = g.sort_values(by="agent", key=lambda s: s.map(agent_to_idx))
-        g = _filter_complete_group(g, agent_order, require_full)
-        if g is None:
-            continue
-        obs = g[[f"obs_{i}" for i in range(obs_dim)]].to_numpy(dtype=np.float32)
-        inits.append(obs.reshape(-1))
-
-    return np.stack(inits).astype(np.float32) if len(inits) else np.zeros((1, obs_dim * len(agent_order)), dtype=np.float32)
 
 
 def split_by_episode(ep_ids: np.ndarray, seed: int, val_ratio: float):
@@ -152,6 +127,11 @@ class DynCfg:
 
 
 class ResidualDynamicsMLP(nn.Module):
+    """
+    Predicts delta next state: s' = s + f(s,a)
+    Light-weight and stable baseline for offline dynamics fitting.
+    """
+
     def __init__(self, cfg: DynCfg):
         super().__init__()
         layers = []
@@ -187,12 +167,12 @@ def evaluate(model, s, a, y, idx, bs, device):
 
 
 def main():
-    p = argparse.ArgumentParser("Train offline multi-agent dynamics from trajectory CSV")
+    p = argparse.ArgumentParser("Train offline multi-agent environment dynamics from trajectory CSV")
     p.add_argument("--csv_path", type=str, required=True)
     p.add_argument("--agent_order", type=str, default="")
     p.add_argument("--obs_dim_per_agent", type=int, default=0, help="0 means infer from CSV")
     p.add_argument("--action_n", type=int, default=0, help="0 means infer from CSV")
-    p.add_argument("--epochs", type=int, default=200)
+    p.add_argument("--epochs", type=int, default=300)
     p.add_argument("--batch_size", type=int, default=2048)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--hidden_dim", type=int, default=512)
@@ -200,8 +180,7 @@ def main():
     p.add_argument("--val_ratio", type=float, default=0.1)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device", type=str, default="auto")
-    p.add_argument("--out_path", type=str, default="hysteal_ckpts/dynamics_best.pt")
-    p.add_argument("--max_init_states", type=int, default=10000)
+    p.add_argument("--out_path", type=str, default="magail/peddingzoo_ckpts/dynamics_best.pt")
     args = p.parse_args()
 
     set_seed(args.seed)
@@ -226,13 +205,6 @@ def main():
         action_n=action_n,
         require_full=True,
     )
-
-    init_states = build_init_states(df, agent_order, obs_dim, require_full=True)
-    if init_states.shape[0] > int(args.max_init_states):
-        rng = np.random.default_rng(args.seed)
-        idx = rng.choice(init_states.shape[0], size=int(args.max_init_states), replace=False)
-        init_states = init_states[idx]
-
     tr_idx, va_idx = split_by_episode(ep_np, args.seed, args.val_ratio)
 
     s = torch.from_numpy(x_np)
@@ -265,6 +237,7 @@ def main():
             yb = y[b].to(device)
 
             yp, _ = model(sb, ab)
+            # Huber is robust for noisy transitions.
             loss = F.smooth_l1_loss(yp, yb)
             opt.zero_grad(set_to_none=True)
             loss.backward()
@@ -274,6 +247,7 @@ def main():
             loss_sum += float(loss.item())
             n_steps += 1
 
+        tr = evaluate(model, s, a, y, tr_idx, bs=max(256, args.batch_size // 4), device=device)
         va = evaluate(model, s, a, y, va_idx, bs=max(256, args.batch_size // 4), device=device)
         print(f"[Dyn] ep={ep:03d}/{args.epochs} train_huber={loss_sum/max(1,n_steps):.6f} val_mse={va['mse']:.6f} val_mae={va['mae']:.6f}")
 
@@ -291,7 +265,6 @@ def main():
                 "n_layers": args.n_layers,
                 "best_val_mse": best_mse,
                 "csv_path": args.csv_path,
-                "init_joint_states": init_states.astype(np.float32),
             }
             torch.save(ckpt, args.out_path)
             print(f"  -> saved best to {args.out_path}")

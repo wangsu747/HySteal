@@ -1,0 +1,48 @@
+env:
+  hot_root: HOT
+  weather_file: HOT/weather/base/USA_GA_Atlanta-Hartsfield-Jackson.Intl.AP.722190_TMY3.epw
+  action_bins: [-1.0, -0.5, 0.0, 0.5, 1.0]
+  timestep_minutes: 15
+  episode_steps: 96
+  comfort_weight: 1.0
+  action_smooth_weight: 0.03
+  energy_weight: 3.0
+  peak_weight: 0.5
+  cost_weight: 0.0
+  campus_power_budget_kw: 350.0
+  default_price: 0.12
+  peak_price: 0.28
+  peak_hours: [13, 14, 15, 16, 17, 18]
+  agents:
+    - agent_id: office
+      archetype: OfficeLarge
+      city: Atlanta
+    - agent_id: hospital
+      archetype: Hospital
+      city: Atlanta
+    - agent_id: school
+      archetype: SchoolPrimary
+      city: Atlanta
+    - agent_id: retail
+      archetype: RetailStandalone
+      city: Atlanta
+
+train:
+  seed: 42
+  total_updates: 5000
+  rollout_steps: 96
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  policy_lr: 0.00001
+  value_lr: 0.00001
+  entropy_coef: 0.002
+  train_epochs: 3
+  minibatch_size: 64
+  hidden_dim: 128
+  checkpoint_dir: HVAC/checkpoints
+  checkpoint_every: 25
+  eval_every: 10
+  log_csv_path: HVAC/logs/campus_4agent_metrics_budget350.csv
+  plot_image_path: HVAC/logs/campus_4agent_convergence_budget350.svg
+

@@ -1,5 +1,5 @@
-
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import argparse
 import os
@@ -18,25 +18,30 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from utils.il_csv_adapter import normalize_il_dataframe
+from SWARM.utils.il_csv_adapter import normalize_il_dataframe
+
 
 @dataclass
 class AugmentConfig:
     enable: bool = False
-    p_aug: float = 1.0
-    gauss_sigma: float = 0.01
-    p_mask: float = 0.0
+    p_aug: float = 1.0                 # default always augment, control strength via sigma/mask
+    gauss_sigma: float = 0.01          # start smaller
+    p_mask: float = 0.0                # feature-wise mask prob
     mask_value: float = 0.0
-    mask_mode: str = "feature"
+    mask_mode: str = "feature"         # "feature" | "element"
 
-    alpha_ce: float = 0.0
+    alpha_ce: float = 0.0              # no CE on aug by default
 
+    # consistency regularization
     lambda_cons: float = 0.1
-    cons_type: str = "kl_probs"
+    cons_type: str = "kl_probs"        # default to KL
 
 
 
 def _parse_dims_spec(spec: str, max_dim: int) -> torch.Tensor:
+    """
+    Parse a dims spec like "0-5,10,12-20" into a boolean mask tensor [max_dim].
+    """
     mask = torch.zeros(max_dim, dtype=torch.bool)
     if spec is None or len(spec.strip()) == 0:
         return mask
@@ -60,14 +65,20 @@ def augment_obs_batch(
     cfg: AugmentConfig,
     global_mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
+    """
+    obs: [B, obs_dim]
+    Returns obs_aug with gaussian noise + optional feature masking.
+    """
     if (not cfg.enable) or (cfg.p_aug <= 0.0):
         return obs
 
+    # apply with probability p_aug per-batch (cheap + stable)
     if torch.rand(()) > cfg.p_aug:
         return obs
 
     x = obs
 
+    # Gaussian noise
     if cfg.gauss_sigma and cfg.gauss_sigma > 0:
         if global_mask is None:
             noise = torch.randn_like(x) * cfg.gauss_sigma
@@ -78,9 +89,10 @@ def augment_obs_batch(
                 noise[:, global_mask] = shared[:, global_mask]
         x = x + noise
 
+    # Feature masking
     if cfg.p_mask and cfg.p_mask > 0:
         if cfg.mask_mode == "feature":
-            m_feat = (torch.rand(1, x.shape[1], device=x.device) < cfg.p_mask)
+            m_feat = (torch.rand(1, x.shape[1], device=x.device) < cfg.p_mask)  # [1, D]
             x = torch.where(m_feat, torch.full_like(x, cfg.mask_value), x)
         elif cfg.mask_mode == "element":
             m = (torch.rand_like(x) < cfg.p_mask)
@@ -108,6 +120,7 @@ def consistency_loss(
     else:
         raise ValueError(f"Unknown cons_type: {cfg.cons_type}")
 
+# <<< ADDED
 
 def set_seed(seed: int):
     random.seed(seed)
@@ -123,6 +136,7 @@ def get_device(device: str) -> torch.device:
 
 
 def infer_obs_cols(df: pd.DataFrame) -> List[str]:
+    # obs_0 ... obs_{D-1}
     obs_cols = [c for c in df.columns if c.startswith("obs_") and c[len("obs_"):].isdigit()]
     obs_cols = sorted(obs_cols, key=lambda x: int(x.split("_")[1]))
     if len(obs_cols) == 0:
@@ -146,6 +160,7 @@ def infer_agent_order(df: pd.DataFrame, agent_order_arg: Optional[str]) -> List[
             raise ValueError("agent_order is empty after parsing.")
         return order
 
+    # default: order by appearance in CSV
     if "agent" not in df.columns:
         raise ValueError("Missing required column: agent")
     seen = []
@@ -166,6 +181,7 @@ class MLPConfig:
     use_agent_id: bool
     agent_emb_dim: int
     n_agents: int
+
 
 class BCPolicy(nn.Module):
     def __init__(self, cfg: MLPConfig):
@@ -189,10 +205,11 @@ class BCPolicy(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, obs: torch.Tensor, agent_id: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # obs: [B, obs_dim]
         if self.cfg.use_agent_id:
             if agent_id is None:
                 raise ValueError("agent_id is required when use_agent_id=True")
-            emb = self.agent_emb(agent_id)
+            emb = self.agent_emb(agent_id)  # [B, emb_dim]
             x = torch.cat([obs, emb], dim=-1)
         else:
             x = obs
@@ -201,6 +218,7 @@ class BCPolicy(nn.Module):
 
 def make_splits_by_episode(df: pd.DataFrame, seed: int, val_ratio: float = 0.1) -> Tuple[np.ndarray, np.ndarray]:
     if "episode" not in df.columns:
+        # fallback: random split by rows
         idx = np.arange(len(df))
         rng = np.random.default_rng(seed)
         rng.shuffle(idx)
@@ -216,6 +234,7 @@ def make_splits_by_episode(df: pd.DataFrame, seed: int, val_ratio: float = 0.1) 
     val_idx = np.where(is_val)[0]
     train_idx = np.where(~is_val)[0]
     if len(val_idx) == 0:
+        # fallback
         idx = np.arange(len(df))
         rng.shuffle(idx)
         n_val = max(1, int(len(df) * val_ratio))
@@ -281,6 +300,7 @@ def main():
     p.add_argument("--val_ratio", type=float, default=0.1)
     p.add_argument("--out_dir", type=str, default=".")
 
+    # >>> ADDED: augmentation args
     p.add_argument("--aug_enable", action="store_true", help="enable online observation augmentation")
     p.add_argument("--aug_p", type=float, default=1.0)
     p.add_argument("--aug_sigma", type=float, default=0.01)
@@ -296,6 +316,7 @@ def main():
     device = get_device(args.device)
 
     df = pd.read_csv(args.csv_path, low_memory=False)
+    # Support both styles: wide columns: obs_*, action_id. compact json style: obs_json, next_obs_json, action
     df, _ = normalize_il_dataframe(df, obs_dim=None, fill_value=0.0, ensure_next_obs=False)
     obs_cols = infer_obs_cols(df)
     obs_dim = len(obs_cols)
@@ -309,11 +330,13 @@ def main():
     agent_to_id = {a: i for i, a in enumerate(agent_order)}
     n_agents = len(agent_order)
 
+    # filter rows with unknown agent if agent_order provided doesn't cover all
     if args.use_agent_id:
         known_mask = df["agent"].isin(agent_to_id.keys())
         if not bool(known_mask.all()):
             df = df.loc[known_mask].copy()
 
+    # tensors
     obs_np = df[obs_cols].to_numpy(dtype=np.float32)
     act_np = df["action_id"].to_numpy(dtype=np.int64)
     if args.use_agent_id:
@@ -338,6 +361,7 @@ def main():
     )
     model = BCPolicy(cfg).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    # build augment config
     aug_cfg = AugmentConfig(
         enable=bool(args.aug_enable),
         p_aug=float(args.aug_p),
@@ -349,6 +373,7 @@ def main():
         lambda_cons=float(args.lambda_cons),
         cons_type=str(args.cons_type),
     )
+    # global_mask = _parse_dims_spec(aug_cfg.global_dims, obs_dim).to(device) if aug_cfg.global_dims else None
 
     best_val_loss = float("inf")
     best_path = os.path.join(args.out_dir, f"bc_best_seed{args.seed}.pth")
@@ -361,6 +386,7 @@ def main():
         for bidx in batch_iter(train_idx, args.batch_size, seed=args.seed + epoch * 1000):
             o = obs_t[bidx].to(device)
             a = act_t[bidx].to(device)
+            # >>> ADDED: online augmentation + consistency regularization
             o_aug = augment_obs_batch(o, aug_cfg)
 
             if cfg.use_agent_id:
@@ -373,8 +399,10 @@ def main():
 
             loss_clean = F.cross_entropy(logits, a)
 
+            # CE only on clean
             loss = loss_clean
 
+            # mix a little CE on aug
             if aug_cfg.alpha_ce and aug_cfg.alpha_ce > 0:
                 loss_aug = F.cross_entropy(logits_aug, a)
                 loss = (1.0 - aug_cfg.alpha_ce) * loss_clean + aug_cfg.alpha_ce * loss_aug
