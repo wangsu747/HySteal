@@ -108,34 +108,14 @@ python3 SWARM/aug.py \
 
 ## Step 4: merge
 
-### simple_tag_v3
+### simple_spread_v3 / simple_tag_v3 / hvac
 
 ```bash
 python3 SWARM/merge.py \
-  --env simple_tag_v3 \
-  --expert_csv data/simple_tag_v3/expert_small.csv \
-  --aug_csv runs/simple_tag_v3/aug.csv \
-  --out_csv runs/simple_tag_v3/merged.csv
-```
-
-### simple_spread_v3
-
-```bash
-python3 SWARM/merge.py \
-  --env simple_spread_v3 \
-  --expert_csv data/simple_spread_v3/expert_small.csv \
-  --aug_csv runs/simple_spread_v3/aug.csv \
-  --out_csv runs/simple_spread_v3/merged.csv
-```
-
-### HVAC
-
-```bash
-python3 SWARM/merge.py \
-  --env hvac \
-  --expert_csv data/hvac/expert_small.csv \
-  --aug_csv runs/hvac/aug.csv \
-  --out_csv runs/hvac/merged.csv
+  --env <env> \
+  --expert_csv data/<env>/expert_small.csv \
+  --aug_csv runs/<env>/aug.csv \
+  --out_csv runs/<env>/merged.csv
 ```
 
 ## Step 5: environemnt on merged data
@@ -175,7 +155,7 @@ python3 SWARM/train.py \
 
 ## Step 7: evaluation
 
-### simple_tag_v3 / simple_spread_v3
+### simple_tag_v3 / simple_spread_v3 / hvac
 
 ```bash
 python3 SWARM/eval.py \
