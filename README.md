@@ -26,7 +26,7 @@ Examples below show only the required or most important arguments. Other options
 ```bash
 conda create -n swarm python=3.9 -y
 conda activate swarm
-pip install -r maddpg/requirements.txt
+pip install -r requirements.txt
 pip install pandas PyYAML click
 ```
 
