@@ -77,7 +77,7 @@ python3 SWARM/dyn.py \
 
 ## Step 3: augmentation
 
-### simple_tag_v3 / simple_spread_v3
+### simple_tag_v3 / simple_spread_v3/hvac
 
 ```bash
 python3 SWARM/aug.py \
@@ -89,21 +89,6 @@ python3 SWARM/aug.py \
   --episodes <aug_episodes> \
   --keep_steps <keep_steps> \
   --out_csv runs/<env>/aug.csv
-```
-
-### HVAC
-
-```bash
-python3 SWARM/aug.py \
-  --env hvac \
-  --config SWARM/configs/campus_4agent.yml \
-  --start_csv data/hvac/expert_small.csv \
-  --student_ckpt runs/hvac/weak_bc/bc_best_seed0.pth \
-  --review_dir runs/hvac/weak_bc \
-  --dynamics_ckpt runs/hvac/dyn.pt \
-  --episodes <aug_episodes> \
-  --keep_steps 20 \
-  --out_csv runs/hvac/aug.csv
 ```
 
 ## Step 4: merge
